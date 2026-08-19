@@ -1,0 +1,33 @@
+services:
+  floodvision:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: floodvision-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DEVICE=cuda
+      - PORT=8000
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Gắn kết thư mục dữ liệu ảnh kiểm thử
+      - ./data:/app/data
+      # Gắn kết thư mục lưu trữ kết quả phân tích & dashboard
+      - ./outputs:/app/outputs
+      # Gắn kết thư mục cấu hình camera để có thể tùy chỉnh
+      - ./configs:/app/configs
+      # Lưu trữ đệm trọng số mô hình CLIPSeg để không tải lại mỗi lần khởi động
+      - hf_cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  hf_cache:
+    name: floodvision_hf_cache

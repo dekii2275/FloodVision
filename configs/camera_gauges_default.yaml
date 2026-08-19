@@ -1,0 +1,74 @@
+camera_id: "DEFAULT_TRAFFIC_CAMERA"
+description: "Cấu hình chuẩn cho Camera giám sát ngập lụt với ROI mặt đường và 3 Cột mốc đo ngập ảo (Virtual Gauges)"
+
+# Vùng ROI mặt đường (tọa độ tương đối 0.0 - 1.0 theo [x, y], tự động co giãn theo kích thước ảnh)
+roi_polygon_normalized:
+  - [0.02, 0.25]   # Góc trên bên trái mặt đường
+  - [0.98, 0.25]   # Góc trên bên phải mặt đường
+  - [1.00, 1.00]   # Góc dưới bên phải
+  - [0.00, 1.00]   # Góc dưới bên trái
+
+# Danh sách 3 Cột mốc đo ngập ảo (Virtual Gauges G1, G2, G3)
+gauges:
+  - id: "G1_Trai"
+    name: "Cột mốc Lề Trái (G1)"
+    base_normalized: [0.25, 0.95]   # Chân cột (0 cm - Mặt đường)
+    top_normalized: [0.25, 0.38]    # Đỉnh cột
+    band_width_px: 15               # Bề rộng dải đo đa tia (pixel)
+    max_height_cm: 80.0             # Chiều cao đo tối đa fallback (cm)
+    fusion_group: "default"
+    calibration_points:
+      - { t: 0.00, depth_cm: 0.0 }
+      - { t: 0.25, depth_cm: 20.0 }
+      - { t: 0.50, depth_cm: 40.0 }
+      - { t: 0.75, depth_cm: 60.0 }
+      - { t: 1.00, depth_cm: 80.0 }
+
+  - id: "G2_Giua"
+    name: "Cột mốc Lòng Đường Trung Tâm (G2)"
+    base_normalized: [0.50, 0.98]   # Chân cột (0 cm - Điểm trũng nhất)
+    top_normalized: [0.50, 0.35]    # Đỉnh cột
+    band_width_px: 15
+    max_height_cm: 100.0
+    fusion_group: "default"
+    calibration_points:
+      - { t: 0.00, depth_cm: 0.0 }
+      - { t: 0.20, depth_cm: 20.0 }
+      - { t: 0.45, depth_cm: 45.0 }
+      - { t: 0.75, depth_cm: 75.0 }
+      - { t: 1.00, depth_cm: 100.0 }
+
+  - id: "G3_Phai"
+    name: "Cột mốc Lề Phải (G3)"
+    base_normalized: [0.75, 0.95]   # Chân cột (0 cm - Mặt đường)
+    top_normalized: [0.75, 0.38]    # Đỉnh cột
+    band_width_px: 15
+    max_height_cm: 80.0
+    fusion_group: "default"
+    calibration_points:
+      - { t: 0.00, depth_cm: 0.0 }
+      - { t: 0.25, depth_cm: 20.0 }
+      - { t: 0.50, depth_cm: 40.0 }
+      - { t: 0.75, depth_cm: 60.0 }
+      - { t: 1.00, depth_cm: 80.0 }
+
+segmentation:
+  threshold: 0.30
+  ensemble: "max"                   # 'max', 'mean', 'top2_mean', 'vote'
+
+postprocess:
+  close_kernel: 5
+  open_kernel: 5
+  min_component_ratio: 0.001        # Tỷ lệ diện tích tối thiểu so với ROI pixel count
+  min_component_px: 50              # Lower bound pixel tuyệt đối
+
+measurement:
+  gauge_band_width_px: 15
+  base_search_radius_px: 8          # Bán kính tìm kiếm cụm nước quanh chân mốc
+  stable_transition_samples: 3      # Số mẫu liên tiếp không có nước để xác nhận ranh giới
+  min_valid_ray_ratio: 0.40
+  num_rays: 15
+
+fusion:
+  method: "median"                  # 'median', 'mean', 'weighted_median'
+  outlier_abs_cm: 25.0              # Ngưỡng phát hiện mốc đo lệch bất thường (|depth - median| > 25cm)

@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.git/
+.gitignore
+.dockerignore
+*.log
+outputs/web_runs/uploads/*
+outputs/web_runs/results/*
+outputs/water_gauge_depth/*
+outputs/water_seg_test/*
+.vscode/
+.idea/
+.agents/
+.gemini/

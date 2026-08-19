@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FloodVision - Giám Sát & Đo Mức Ngập</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <header>
+    <div class="logo-group">
+      <div class="logo-badge">FV</div>
+      <div class="logo-text">
+        <h1>FloodVision AI</h1>
+        <p>Hệ Thống Phân Đoạn & Đo Mực Nước Ngập (G1, G2, G3)</p>
+      </div>
+    </div>
+    <div class="system-status">
+      <div class="status-pill">
+        <div class="dot-pulse"></div>
+        <span>CLIPSeg Ready</span>
+      </div>
+      <div class="status-pill">
+        <span>5 Cấp Độ (L0 – L4)</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- LEFT PANEL: Image & Interactive Canvas -->
+    <section class="card">
+      <div class="card-title">
+        <span>📸 Vị Trí 3 Cột Mốc (G1, G2, G3)</span>
+        <div class="controls-row">
+          <button class="btn" id="btnUploadTrigger">📁 Tải ảnh mới</button>
+          <input type="file" id="fileUploadInput" accept="image/*" style="display: none;">
+        </div>
+      </div>
+
+      <!-- Sample Image Selector & Presets -->
+      <div class="controls-row" style="flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 260px;">
+          <label style="font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">Ảnh kiểm thử:</label>
+          <select id="sampleSelect" style="flex: 1;">
+            <option value="">-- Đang nạp danh sách ảnh mẫu --</option>
+          </select>
+        </div>
+        <div class="preset-group">
+          <button class="btn btn-sm" id="btnPresetDefault" title="Căn đều 3 mốc">↺ Căn Đều</button>
+          <button class="btn btn-sm" id="btnPresetNarrow" title="Căn chỉnh đường hẹp">Đường Hẹp</button>
+          <button class="btn btn-sm" id="btnPresetPerspective" title="Căn chỉnh góc xa gần">Góc Xa/Gần</button>
+        </div>
+      </div>
+
+      <!-- Quick Placement Toolbar -->
+      <div class="placement-toolbar">
+        <span style="font-size: 0.82rem; color: var(--text-secondary); font-weight: 600;">⚡ Đặt mốc nhanh:</span>
+        <button class="btn btn-sm btn-place" id="btnPlaceG1" data-gauge="0">📍 Mốc G1 (Trái)</button>
+        <button class="btn btn-sm btn-place" id="btnPlaceG2" data-gauge="1">📍 Mốc G2 (Giữa)</button>
+        <button class="btn btn-sm btn-place" id="btnPlaceG3" data-gauge="2">📍 Mốc G3 (Phải)</button>
+        <button class="btn btn-sm btn-cancel-place" id="btnCancelPlace" style="display: none;">✖ Hủy</button>
+      </div>
+
+      <!-- Canvas Area -->
+      <div class="canvas-wrapper">
+        <canvas id="gaugeCanvas"></canvas>
+        <div class="canvas-hint" id="canvasHint">
+          💡 Kéo thân thước để di chuyển cả cột mốc, hoặc kéo 2 đầu mút <strong>0 cm (Chân)</strong> và <strong>Đỉnh thước</strong>.
+        </div>
+      </div>
+
+      <!-- Gauge Position & Height Configuration Cards -->
+      <div class="gauge-settings-grid">
+        <!-- G1 Card -->
+        <div class="gauge-card g1-card" id="cardG1">
+          <div class="gauge-header g1-badge">
+            <span>📍 G1: Lề Trái</span>
+          </div>
+          
+          <div class="gauge-prop-row">
+            <span>Vị trí X:</span>
+            <div class="slider-val-box">
+              <input type="range" id="g1_x_slider" min="0" max="100" value="25" step="1">
+              <input type="number" id="g1_x_num" min="0" max="100" value="25"> %
+            </div>
+          </div>
+
+          <div class="gauge-prop-row">
+            <span>Chân mốc Y:</span>
+            <div class="slider-val-box">
+              <input type="range" id="g1_by_slider" min="0" max="100" value="95" step="1">
+              <input type="number" id="g1_by_num" min="0" max="100" value="95"> %
+            </div>
+          </div>
+
+          <div class="gauge-prop-row">
+            <span>Đỉnh thước Y:</span>
+            <div class="slider-val-box">
+              <input type="range" id="g1_ty_slider" min="0" max="100" value="38" step="1">
+              <input type="number" id="g1_ty_num" min="0" max="100" value="38"> %
+            </div>
+          </div>
+
+          <div class="gauge-prop-row" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px;">
+            <span style="font-weight: 600;">Chiều cao max:</span>
+            <div class="slider-val-box">
+              <input type="number" id="g1_max_cm" value="80" min="10" max="300" style="width: 65px; font-weight: bold; color: #06b6d4;"> cm
+            </div>
+          </div>
+        </div>
+
+        <!-- G2 Card -->
+        <div class="gauge-card g2-card" id="cardG2">
+          <div class="gauge-header g2-badge">
+            <span>📍 G2: Lòng Đường</span>
+          </div>
+
+          <div class="gauge-prop-row">
+            <span>Vị trí X:</span>
+            <div class="slider-val-box">
+              <input type="range" id="g2_x_slider" min="0" max="100" value="50" step="1">
+              <input type="number" id="g2_x_num" min="0" max="100" value="50"> %
+            </div>
+          </div>
+
+          <div class="gauge-prop-row">
+            <span>Chân mốc Y:</span>
+            <div class="slider-val-box">
+              <input type="range" id="g2_by_slider" min="0" max="100" value="98" step="1">
+              <input type="number" id="g2_by_num" min="0" max="100" value="98"> %
+            </div>
+          </div>
+
+          <div class="gauge-prop-row">
+            <span>Đỉnh thước Y:</span>
+            <div class="slider-val-box">
+              <input type="range" id="g2_ty_slider" min="0" max="100" value="35" step="1">
+              <input type="number" id="g2_ty_num" min="0" max="100" value="35"> %
+            </div>
+          </div>
+
+          <div class="gauge-prop-row" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px;">
+            <span style="font-weight: 600;">Chiều cao max:</span>
+            <div class="slider-val-box">
+              <input type="number" id="g2_max_cm" value="100" min="10" max="300" style="width: 65px; font-weight: bold; color: #f59e0b;"> cm
+            </div>
+          </div>
+        </div>
+
+        <!-- G3 Card -->
+        <div class="gauge-card g3-card" id="cardG3">
+          <div class="gauge-header g3-badge">
+            <span>📍 G3: Lề Phải</span>
+          </div>
+
+          <div class="gauge-prop-row">
+            <span>Vị trí X:</span>
+            <div class="slider-val-box">
+              <input type="range" id="g3_x_slider" min="0" max="100" value="75" step="1">
+              <input type="number" id="g3_x_num" min="0" max="100" value="75"> %
+            </div>
+          </div>
+
+          <div class="gauge-prop-row">
+            <span>Chân mốc Y:</span>
+            <div class="slider-val-box">
+              <input type="range" id="g3_by_slider" min="0" max="100" value="95" step="1">
+              <input type="number" id="g3_by_num" min="0" max="100" value="95"> %
+            </div>
+          </div>
+
+          <div class="gauge-prop-row">
+            <span>Đỉnh thước Y:</span>
+            <div class="slider-val-box">
+              <input type="range" id="g3_ty_slider" min="0" max="100" value="38" step="1">
+              <input type="number" id="g3_ty_num" min="0" max="100" value="38"> %
+            </div>
+          </div>
+
+          <div class="gauge-prop-row" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px;">
+            <span style="font-weight: 600;">Chiều cao max:</span>
+            <div class="slider-val-box">
+              <input type="number" id="g3_max_cm" value="80" min="10" max="300" style="width: 65px; font-weight: bold; color: #ec4899;"> cm
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Threshold Slider & Run Action -->
+      <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.7); padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+        <label style="font-size: 0.82rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+          ⚙️ <strong>Độ nhạy nhận diện (Threshold):</strong>
+        </label>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="range" id="thresholdSlider" min="0.15" max="0.50" step="0.05" value="0.30" style="width: 110px; accent-color: var(--accent-cyan);">
+          <span id="thresholdValText" style="font-size: 0.85rem; font-weight: 700; color: #38bdf8; width: 36px;">0.30</span>
+        </div>
+      </div>
+
+      <!-- Run Action Button -->
+      <button class="btn btn-primary" id="btnAnalyze">
+        <span>⚡ XỬ LÝ & ĐO ĐỘ SÂU NGẬP</span>
+      </button>
+    </section>
+
+    <!-- RIGHT PANEL: Live Results -->
+    <section class="card" id="resultsSection">
+      <div class="card-title">
+        <span>📊 Kết Quả Đo Mực Nước</span>
+        <span id="processTime" style="font-size: 0.8rem; color: var(--text-muted);">Sẵn sàng</span>
+      </div>
+
+      <!-- Level Status Banner (Clean & Focused) -->
+      <div class="level-banner" id="levelBanner">
+        <div class="level-top-row">
+          <div class="level-badge-large" id="levelBadge">CHỜ PHÂN TÍCH</div>
+          <div class="level-depth-callout" id="fusedDepthText">-- cm</div>
+        </div>
+      </div>
+
+      <!-- Key Metrics Grid -->
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="metric-label">Mức Ngập</div>
+          <div class="metric-value" id="metricLevelCode" style="color: #38bdf8;">--</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Độ Sâu (cm)</div>
+          <div class="metric-value" id="metricFused">-- cm</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Diện Tích Ngập</div>
+          <div class="metric-value" id="metricArea">-- %</div>
+        </div>
+      </div>
+
+      <!-- Gauge Details Table -->
+      <div>
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th>Cột mốc</th>
+              <th>Trạng thái</th>
+              <th>Độ sâu</th>
+              <th>Dải tia hợp lệ</th>
+              <th>Hiệu chuẩn</th>
+            </tr>
+          </thead>
+          <tbody id="gaugeTableBody">
+            <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Chưa có dữ liệu</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Fusion Summary Bar -->
+      <div id="fusionSummaryBox" style="display: none; margin-top: 8px; padding: 10px 14px; background: rgba(15, 23, 42, 0.8); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); font-size: 0.84rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div><strong style="color: #38bdf8;">🔄 Hợp nhất:</strong> <span id="fusionUsedText">--</span></div>
+          <div><span id="fusionRejectedText" style="color: #ef4444;"></span></div>
+        </div>
+      </div>
+
+      <!-- Visual Dashboard Preview -->
+      <div class="card-title" style="margin-top: 6px;">
+        <span>🖼️ Dashboard Trực Quan Hóa (4 Khung Hình)</span>
+      </div>
+      <div class="dashboard-preview" id="dashboardPreview">
+        <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+          Ảnh Dashboard kết quả sẽ hiển thị ở đây sau khi phân tích
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal View Dashboard -->
+  <div class="modal" id="imageModal">
+    <img id="modalImg" src="" alt="Dashboard View">
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
